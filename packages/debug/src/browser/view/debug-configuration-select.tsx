@@ -84,13 +84,11 @@ export class DebugConfigurationSelect extends React.Component<DebugConfiguration
             this.selectDynamicConfigFromQuickPick(providerType);
         } else {
             const [name, type, request, workspaceFolderUri, providerType] = InternalDebugSessionOptions.parseValue(value);
-            this.manager.current =
-                this.manager.find
-                    (
-                        { name, type, request },
-                        workspaceFolderUri,
-                        providerType === 'undefined' ? undefined : providerType
-                    );
+            this.manager.current = this.manager.find(
+                { name, type, request },
+                workspaceFolderUri,
+                providerType === 'undefined' ? undefined : providerType
+            );
         }
     };
 
@@ -102,15 +100,16 @@ export class DebugConfigurationSelect extends React.Component<DebugConfiguration
         return value.slice(DebugConfigurationSelect.PICK.length);
     }
 
-    protected async selectDynamicConfigFromQuickPick(providerType: string): Promise<void> {
+    protected async resolveDynamicConfigurationPicks(providerType: string): Promise<DynamicPickItem[]> {
         const configurationsOfProviderType =
             (await this.manager.provideDynamicDebugConfigurations()).find(entry => entry.type === providerType);
-        if (!configurationsOfProviderType) {
-            return;
-        }
-        const { configurations } = configurationsOfProviderType;
 
         const picks: DynamicPickItem[] = [];
+        if (!configurationsOfProviderType) {
+            return picks;
+        }
+
+        const { configurations } = configurationsOfProviderType;
         for (const configuration of configurations) {
             picks.push({
                 label: configuration.name,
@@ -119,25 +118,22 @@ export class DebugConfigurationSelect extends React.Component<DebugConfiguration
                 providerType
             });
         }
+        return picks;
+    }
+
+    protected async selectDynamicConfigFromQuickPick(providerType: string): Promise<void> {
+        const picks: DynamicPickItem[] = await this.resolveDynamicConfigurationPicks(providerType);
 
         if (picks.length === 0) {
             return;
         }
 
-        const quickPick = this.quickInputService.createQuickPick<DynamicPickItem>();
-        quickPick.items = picks;
-        quickPick.placeholder = nls.localizeByDefault('Select Launch Configuration');
-        quickPick.show();
-
-        const selected: DynamicPickItem | undefined = await new Promise(resolve => {
-            // If the user presses `Escape` then `quickPick.onDidAccept` will fire
-            // and `quickPick.activeItems` will be empty.
-            quickPick.onDidAccept(() => {
-                resolve(quickPick.activeItems[0]);
-            });
-        });
-
-        quickPick.dispose();
+        const selected: DynamicPickItem | undefined = await this.quickInputService.showQuickPick(
+            picks,
+            {
+                placeholder: nls.localizeByDefault('Select Launch Configuration')
+            }
+        );
 
         if (!selected) {
             return;

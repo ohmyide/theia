@@ -178,7 +178,7 @@ export class DebugConfigurationManager {
             return this._currentOptions;
         }
 
-        // Refresh a dynamic configuration from the provider,
+        // Refresh a dynamic configuration from the provider.
         // This allow providers to update properties before the execution e.g. program
         const { providerType, configuration: { name } } = this._currentOptions;
         const configuration = await this.fetchDynamicDebugConfiguration(name, providerType);
@@ -206,10 +206,10 @@ export class DebugConfigurationManager {
                 this.recentDynamicOptionsTracker.splice(index, 1);
             }
             // Adding new item, most recent at the top of the list
-            if (this.recentDynamicOptionsTracker.unshift(option) > 3) {
-                // Remove oldest, i.e. Keeping a short number of recently used
-                // configuration options
-                this.recentDynamicOptionsTracker.pop();
+            const recentMax = 3;
+            if (this.recentDynamicOptionsTracker.unshift(option) > recentMax) {
+                // Keep the latest 3 dynamic configuration options to not clutter the dropdown.
+                this.recentDynamicOptionsTracker.splice(recentMax);
             }
         }
     }
@@ -457,13 +457,15 @@ export class DebugConfigurationManager {
         }
 
         for (const option of options) {
-            const configuration = {
-                name: option.name,
-                type: option.type,
-                request: option.request
+            const sessionOptions: DebugSessionOptions = {
+                configuration: {
+                    name: option.name,
+                    type: option.type,
+                    request: option.request
+                },
+                providerType: option.providerType
             };
-
-            this.recentDynamicOptionsTracker.push({ configuration, providerType: option.providerType });
+            this.recentDynamicOptionsTracker.push(sessionOptions);
         }
     }
 
