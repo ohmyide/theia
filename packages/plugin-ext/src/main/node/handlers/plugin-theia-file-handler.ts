@@ -43,7 +43,11 @@ export class PluginTheiaFileHandler implements PluginDeployerFileHandler {
             context.pluginEntry().updatePath(pluginDir);
             return;
         }
+        
+        console.time(`!!!!!!! unzip ${id} took `);
         await context.unzip(context.pluginEntry().path(), pluginDir);
+        console.timeEnd(`!!!!!!! unzip ${id} took `);
+        
         console.log(`[${id}]: decompressed`);
         context.pluginEntry().updatePath(pluginDir);
     }
