@@ -288,8 +288,8 @@ export class ElectronMainMenuFactory extends BrowserMainMenuFactory {
                     const item = this._menu.getMenuItemById(command);
                     if (item) {
                         item.checked = this.commandRegistry.isToggled(command, ...args);
+                        electronRemote.getCurrentWindow().setMenu(this._menu);
                     }
-                    electronRemote.getCurrentWindow().setMenu(this._menu);
                 }
             }
         } catch {
