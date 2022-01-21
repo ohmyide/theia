@@ -42,14 +42,6 @@ import { MonacoTextModelService } from '@theia/monaco/lib/browser/monaco-text-mo
 export interface WillProvideDebugConfiguration extends WaitUntilEvent {
 }
 
-export interface DebugSessionOptionsData {
-    name: string,
-    type: string,
-    request: string,
-    workspaceFolderUri?: string,
-    providerType?: string
-};
-
 @injectable()
 export class DebugConfigurationManager {
 
@@ -445,63 +437,40 @@ export class DebugConfigurationManager {
         const data = await this.storage.getData<DebugConfigurationManager.Data>('debug.configurations', {});
         this.resolveRecentDynamicOptionsFromData(data.recentDynamicOptions);
 
-        if (data.current) {
-            const configuration = { name: data.current.name, type: data.current.type, request: data.current.request };
-            this.current = this.find(configuration, data.current.workspaceFolderUri, data.current.providerType);
+        // configuration was not present in a previous format
+        if (data.current && 'configuration' in data.current) {
+            this.current = this.find(data.current.configuration, data.current.workspaceFolderUri, data.current.providerType);
         }
     }
 
-    protected resolveRecentDynamicOptionsFromData(options?: DebugSessionOptionsData[]): void {
+    protected resolveRecentDynamicOptionsFromData(options?: DebugSessionOptions[]): void {
         if (!options || this.recentDynamicOptionsTracker.length !== 0) {
             return;
         }
 
-        for (const option of options) {
-            const sessionOptions: DebugSessionOptions = {
-                configuration: {
-                    name: option.name,
-                    type: option.type,
-                    request: option.request
-                },
-                providerType: option.providerType
-            };
-            this.recentDynamicOptionsTracker.push(sessionOptions);
-        }
+        this.recentDynamicOptionsTracker = options;
     }
 
     save(): void {
         const data: DebugConfigurationManager.Data = {};
         const { current, recentDynamicOptionsTracker } = this;
         if (current) {
-            data.current = {
-                name: current.configuration.name,
-                type: current.configuration.type,
-                request: current.configuration.request,
-            };
-            if (current.workspaceFolderUri) { data.current.workspaceFolderUri = current.workspaceFolderUri; }
-            if (current.providerType) {data.current.providerType = current.providerType; }
+            data.current = current;
         }
-        if (this.recentDynamicOptionsTracker.length > 0) {
-            const recentDynamicOptionsData = [];
-            for (const options of recentDynamicOptionsTracker) {
-                const optionsData: DebugSessionOptionsData = {
-                    name: options.configuration.name,
-                    type: options.configuration.type,
-                    request: options.configuration.request
-                };
-                if (options.providerType) { optionsData.providerType = options.providerType; }
 
-                recentDynamicOptionsData.push(optionsData);
-            }
-            data.recentDynamicOptions = recentDynamicOptionsData;
+        if (this.recentDynamicOptionsTracker.length > 0) {
+            data.recentDynamicOptions = recentDynamicOptionsTracker;
         }
-        this.storage.setData('debug.configurations', data);
+
+        if (Object.keys(data).length > 0) {
+            this.storage.setData('debug.configurations', data);
+        }
     }
 }
 
 export namespace DebugConfigurationManager {
     export interface Data {
-        current?: DebugSessionOptionsData,
-        recentDynamicOptions?: DebugSessionOptionsData[]
+        current?: DebugSessionOptions,
+        recentDynamicOptions?: DebugSessionOptions[]
     }
 }
