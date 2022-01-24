@@ -74,7 +74,7 @@ async function getTypescriptReferences(requestedPackage) {
     const references = await Promise.all((requestedPackage.workspaceDependencies || []).map(async dependency => {
         const depWorkspace = YARN_WORKSPACES[dependency];
         const depConfig = path.join(ROOT, depWorkspace.location, 'tsconfig.json');
-        if (!await fileExists(depConfig)) {
+        if (depWorkspace.location.includes('api-tests') || !await fileExists(depConfig)) {
             return undefined; // ignore because dep has no tsconfig
         }
         return path.posix.relative(requestedPackage.location, depWorkspace.location);
